@@ -25,16 +25,10 @@ namespace SecuredSqlSample.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<ICollection<Profile>> Get()
-        {
-            return await _context.Profiles.ToListAsync();
-        }
+        public Task<List<Profile>> Get() => _context.Profiles.ToListAsync();
 
         [HttpGet]
         [Route("{id:int}")]
-        public async Task<Profile> Get(int id)
-        {
-            return await _context.Profiles.FirstOrDefaultAsync(p => p.Id == id);
-        }
+        public Task<Profile> Get(int id) => _context.Profiles.FirstOrDefaultAsync(p => p.Id == id);
     }
 }

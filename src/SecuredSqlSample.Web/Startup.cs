@@ -1,5 +1,7 @@
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,8 +26,21 @@ namespace SecuredSqlSample.Web
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "SecuredSqlSample.Web", Version = "v1" });
             });
-            services.AddDbContext<ProfileDbContext>();
+
+            if (IsRunningInAzure())
+            {
+                services.AddDbContext<ProfileDbContext>(options =>
+                    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            }
+            else
+            {
+                services.AddDbContext<ProfileDbContext>(options =>
+                    options.UseSqlite(@"Data Source=C:\tmp\profiles.db"));
+            }
         }
+
+        private static bool IsRunningInAzure()
+            => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME"));
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

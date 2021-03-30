@@ -4,11 +4,9 @@ namespace SecuredSqlSample.Web
 {
     public class ProfileDbContext : DbContext
     {
-        public DbSet<Profile> Profiles { get; set; }
+        public ProfileDbContext(DbContextOptions<ProfileDbContext> options)
+            : base(options) {}
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlite(@"Data Source=C:\tmp\profiles.db");
-        }
+        public DbSet<Profile> Profiles { get; set; }
     }
 }

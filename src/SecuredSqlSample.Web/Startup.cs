@@ -30,7 +30,10 @@ namespace SecuredSqlSample.Web
             if (IsRunningInAzure())
             {
                 services.AddDbContext<ProfileDbContext>(options =>
-                    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+                {
+                    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
+                    options.AddInterceptors(new AzureAdAuthenticationDbConnectionInterceptor());
+                });
             }
             else
             {

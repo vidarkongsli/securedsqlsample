@@ -43,8 +43,10 @@ stages:
       vmImage: windows-latest
     strategy:
       runOnce:
-        preDeploy:
+        deploy:
           steps:
+          - checkout: self
+          - download: none
           - script: |
               echo "##vso[task.logissue type=error]Variable 'resourceGroupName' needs to be set in the pipeline config."
             condition: eq(variables['resourceGroupName'],'')
@@ -60,10 +62,6 @@ stages:
             condition: eq(variables['aadAdminOid'],'')
             displayName: Verify that 'aadAdminOid' is set
             continueOnError: false
-        deploy:
-          steps:
-          - checkout: self
-          - download: none
           - task: AzureResourceGroupDeployment@2
             displayName: Apply ARM template
             inputs:

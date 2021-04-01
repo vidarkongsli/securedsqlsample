@@ -49,14 +49,17 @@ stages:
               echo "##vso[task.logissue type=error]Variable 'resourceGroupName' needs to be set in the pipeline config."
             condition: eq(variables['resourceGroupName'],'')
             displayName: Verify that 'resourceGroupName' is set
+            continueOnError: false
           - script: |
               echo "##vso[task.logissue type=error]Variable 'aadAdminLogin' needs to be set in the pipeline config."
             condition: eq(variables['aadAdminLogin'],'')
             displayName: Verify that 'aadAdminLogin' is set
+            continueOnError: false
           - script: |
               echo "##vso[task.logissue type=error]Variable 'aadAdminOid' needs to be set in the pipeline config."
             condition: eq(variables['aadAdminOid'],'')
             displayName: Verify that 'aadAdminOid' is set
+            continueOnError: false
         deploy:
           steps:
           - checkout: self

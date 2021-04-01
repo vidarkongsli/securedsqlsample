@@ -1,0 +1,155 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- name: azureServiceConnection
+  value: 'SECURED_MIGRATIONS_WEBAPP'
+- name: location
+  value: NorwayEast
+- name: sqlServerAadGroup
+  value: SqlServers
+
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: Build application
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        modifyOutputPath: false
+        arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
+        projects: 'src/SecureMigrationsSample.Web/SecureMigrationsSample.Web.csproj'
+        zipAfterPublish: true
+
+    - publish: $(Build.ArtifactStagingDirectory)
+      artifact: app
+      displayName: Publish artifact
+
+- stage: Provision
+  dependsOn: []
+  jobs:
+  - deployment: Provision
+    displayName: Provision application infrastructure
+    environment: production
+    pool:
+      vmImage: windows-latest
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - download: none
+          - task: AzureResourceGroupDeployment@2
+            displayName: Apply ARM template
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: $(resourceGroupName)
+              location: $(location) 
+              templateLocation: 'Linked artifact'
+              csmFile: deployment/azuredeploy.json
+              csmParametersFile: deployment/azuredeploy.parameters.json
+              overrideParameters: -aadAdminOid $(aadAdminOid) -aadAdminLogin $(aadAdminLogin)
+              deploymentMode: 'Incremental'
+              deploymentOutputs: PROVISION
+
+          - pwsh: |
+              $data = ConvertFrom-Json $env:PROVISION
+              Write-Host "##vso[task.setvariable variable=sqlServerName;]$($data.sqlServerName.value)"
+              Write-Host "##vso[task.setvariable variable=sqlDatabaseName;]$($data.sqlDatabaseName.value)"
+              Write-Host "##vso[task.setvariable variable=webAppName;]$($data.webAppName.value)"
+              Write-Host "##vso[task.setvariable variable=databaseConnectionString;isOutput=true]$($data.databaseConnectionString.value)"
+            displayName: Collect variables from ARM deployment
+            name: provVar
+
+          - task: AzureCLI@2
+            displayName: Add SQL server to AAD group
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                  $ErrorActionPreference = 'stop'
+                  $sqlServerSecurityPrincipal = az ad sp list --display-name '$(sqlServerName)' | ConvertFrom-Json
+                  if (-not($sqlServerSecurityPrincipal)) {
+                    Write-Error "Could not find AAD security principal for SQL Server $(sqlServerName)."
+                  }
+                  $isMember = az ad group member check --group '$(sqlServerAadGroup)' --member-id $sqlServerSecurityPrincipal.objectId | ConvertFrom-Json
+                  if ($isMember.Value) {
+                    Write-Output "Service principal $($sqlServerSecurityPrincipal.displayName) ($($sqlServerSecurityPrincipal.objectId)) is already member of group $(sqlServerAadGroup)."
+                  } else {
+                    Write-Output "Adding service principal $($sqlServerSecurityPrincipal.displayName) ($($sqlServerSecurityPrincipal.objectId)) to group $(sqlServerAadGroup)."
+                    az ad group member add --group '$(sqlServerAadGroup)' --member-id $sqlServerSecurityPrincipal.objectId
+                  }
+ 
+          - task: SqlAzureDacpacDeployment@1
+            displayName: Create SQL database user for application
+            inputs:
+              azureConnectionType: 'ConnectedServiceNameARM' # Optional. Options: connectedServiceName, connectedServiceNameARM
+              azureSubscription: $(azureServiceConnection)
+              authenticationType: 'servicePrincipal' # Options: server, aadAuthenticationPassword, aadAuthenticationIntegrated, connectionString, servicePrincipal
+              serverName: '$(sqlServerName).database.windows.net' # Required when authenticationType == Server || AuthenticationType == AadAuthenticationPassword || AuthenticationType == AadAuthenticationIntegrated || AuthenticationType == servicePrincipal
+              databaseName: $(sqlDatabaseName) # Required when authenticationType == Server || AuthenticationType == AadAuthenticationPassword || AuthenticationType == AadAuthenticationIntegrated || AuthenticationType == servicePrincipal
+              deployType: 'inlineSqlTask' # Options: dacpacTask, sqlTask, inlineSqlTask
+              IpDetectionMethod: AutoDetect
+              sqlInline: | # Required when deployType == InlineSqlTask
+                  IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = '$(webAppName)')
+                  BEGIN
+                    Print 'User $(webAppName) already exists in database $(sqlDatabaseName) on server $(sqlServerName)'
+                  END
+                  ELSE
+                  BEGIN
+                    Print 'Createing user $(webAppName) in database $(sqlDatabaseName) on server $(sqlServerName)'
+                    CREATE USER [$(webAppName)] FROM EXTERNAL PROVIDER
+                  END
+                  ALTER ROLE db_datareader ADD MEMBER [$(webAppName)];
+                  ALTER ROLE db_datawriter ADD MEMBER [$(webAppName)];
+                  
+- stage: Deploy
+  dependsOn: [Build,Provision]
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy application
+    environment: production
+    variables:
+    - name: connectionString
+      value: $[ stageDependencies.Provision.Provision.outputs['Provision.provVar.databaseConnectionString'] ]
+    strategy:
+      runOnce:
+        preDeploy:
+          steps:
+          - download: current
+
+          - task: ExtractFiles@1
+            displayName: Extract application
+            inputs:
+              archiveFilePatterns: '$(Pipeline.Workspace)/app/*.zip'
+              destinationFolder: '$(System.DefaultWorkingDirectory)/work'
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                  Write-Host "Connection string is $(connectionString)"
+                  ${env:ConnectionStrings:DefaultConnection}="$(connectionString)"
+                  dotnet '$(System.DefaultWorkingDirectory)/work/SecureMigrationsSample.Web.dll' --migrate --thenExit
+            env:
+              CONN_STRING: $(connectionString)
+            displayName: Run database migrations
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            displayName: Deploy application
+            inputs:
+              appType: webAppLinux
+              azureSubscription: $(azureServiceConnection)
+              appName: 'securedmigrationssample'
+              package: '$(Pipeline.Workspace)/app/*.zip'

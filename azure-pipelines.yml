@@ -6,7 +6,7 @@ pool:
 
 variables:
 - name: azureServiceConnection
-  value: 'SECURED_MIGRATIONS_WEBAPP'
+  value: 'SECURED_SQL_SAMPLE_ARM'
 - name: location
   value: NorwayEast
 - name: sqlServerAadGroup

@@ -17,6 +17,10 @@ stages:
   jobs:
   - job: Build
     steps:
+    - script: |
+        echo "##[error]Variable 'resourceGroupName' needs to be set in the pipeline config."
+      condition: eq(variables['resourceGroupName'],'')
+      displayName: Verify that 'resourceGroupName' is set
     - task: DotNetCoreCLI@2
       displayName: Build application
       inputs:

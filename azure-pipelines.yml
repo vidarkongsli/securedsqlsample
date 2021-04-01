@@ -44,15 +44,15 @@ stages:
         preDeploy:
           steps:
           - script: |
-              echo "##[error]Variable 'resourceGroupName' needs to be set in the pipeline config."
+              echo "##vso[task.logissue type=error]Variable 'resourceGroupName' needs to be set in the pipeline config."
             condition: eq(variables['resourceGroupName'],'')
             displayName: Verify that 'resourceGroupName' is set
           - script: |
-              echo "##[error]Variable 'aadAdminLogin' needs to be set in the pipeline config."
+              echo "##vso[task.logissue type=error]Variable 'aadAdminLogin' needs to be set in the pipeline config."
             condition: eq(variables['aadAdminLogin'],'')
             displayName: Verify that 'aadAdminLogin' is set
           - script: |
-              echo "##[error]Variable 'aadAdminOid' needs to be set in the pipeline config."
+              echo "##vso[task.logissue type=error]Variable 'aadAdminOid' needs to be set in the pipeline config."
             condition: eq(variables['aadAdminOid'],'')
             displayName: Verify that 'aadAdminOid' is set
         deploy:

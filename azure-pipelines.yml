@@ -45,23 +45,23 @@ stages:
       vmImage: windows-latest
     strategy:
       runOnce:
-        preDeploy:
-          steps:
-          - script: |
-              echo "##vso[task.logissue type=error]Variable 'resourceGroupName' needs to be set in the pipeline config."
-              exit 1
-            condition: and(succeeded(),eq(variables['resourceGroupName'],''))
-            displayName: Variable 'resourceGroupName' is not set
-          - script: |
-              echo "##vso[task.logissue type=error]Variable 'aadAdminLogin' needs to be set in the pipeline config."
-              exit 1
-            condition: and(succeeded(),eq(variables['aadAdminLogin'],''))
-            displayName: Variable 'aadAdminLogin' is not set
-          - script: |
-              echo "##vso[task.logissue type=error]Variable 'aadAdminOid' needs to be set in the pipeline config."
-              exit 1
-            condition: and(succeeded(),eq(variables['aadAdminOid'],''))
-            displayName: Variable 'aadAdminOid' is not set
+        # preDeploy:
+        #   steps:
+        #   - script: |
+        #       echo "##vso[task.logissue type=error]Variable 'resourceGroupName' needs to be set in the pipeline config."
+        #       exit 1
+        #     condition: and(succeeded(),eq(variables['resourceGroupName'],''))
+        #     displayName: Variable 'resourceGroupName' is not set
+        #   - script: |
+        #       echo "##vso[task.logissue type=error]Variable 'aadAdminLogin' needs to be set in the pipeline config."
+        #       exit 1
+        #     condition: and(succeeded(),eq(variables['aadAdminLogin'],''))
+        #     displayName: Variable 'aadAdminLogin' is not set
+        #   - script: |
+        #       echo "##vso[task.logissue type=error]Variable 'aadAdminOid' needs to be set in the pipeline config."
+        #       exit 1
+        #     condition: and(succeeded(),eq(variables['aadAdminOid'],''))
+        #     displayName: Variable 'aadAdminOid' is not set
         deploy:
           steps:
           - checkout: self
@@ -85,7 +85,7 @@ stages:
               $data = ConvertFrom-Json $env:PROVISION
               Write-Host "##vso[task.setvariable variable=sqlServerName;]$($data.sqlServerName.value)"
               Write-Host "##vso[task.setvariable variable=sqlDatabaseName;]$($data.sqlDatabaseName.value)"
-              Write-Host "##vso[task.setvariable variable=webAppName;]$($data.webAppName.value)"
+              Write-Host "##vso[task.setvariable variable=webAppName;isOutput=true]$($data.webAppName.value)"
               Write-Host "##vso[task.setvariable variable=databaseConnectionString;isOutput=true]$($data.databaseConnectionString.value)"
             displayName: Collect variables from ARM deployment
             name: provVar
@@ -121,17 +121,17 @@ stages:
               deployType: 'inlineSqlTask' # Options: dacpacTask, sqlTask, inlineSqlTask
               IpDetectionMethod: AutoDetect
               sqlInline: | # Required when deployType == InlineSqlTask
-                  IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = '$(webAppName)')
+                  IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = '$(provVar.webAppName)')
                   BEGIN
-                    Print 'User $(webAppName) already exists in database $(sqlDatabaseName) on server $(sqlServerName)'
+                    Print 'User $(provVar.webAppName) already exists in database $(sqlDatabaseName) on server $(sqlServerName)'
                   END
                   ELSE
                   BEGIN
-                    Print 'Createing user $(webAppName) in database $(sqlDatabaseName) on server $(sqlServerName)'
-                    CREATE USER [$(webAppName)] FROM EXTERNAL PROVIDER
+                    Print 'Createing user $(provVar.webAppName) in database $(sqlDatabaseName) on server $(sqlServerName)'
+                    CREATE USER [$(provVar.webAppName)] FROM EXTERNAL PROVIDER
                   END
-                  ALTER ROLE db_datareader ADD MEMBER [$(webAppName)];
-                  ALTER ROLE db_datawriter ADD MEMBER [$(webAppName)];
+                  ALTER ROLE db_datareader ADD MEMBER [$(provVar.webAppName)];
+                  ALTER ROLE db_datawriter ADD MEMBER [$(provVar.webAppName)];
                   
 - stage: Deploy
   dependsOn: [Build,Provision]

@@ -167,6 +167,7 @@ stages:
                   dotnet '$(System.DefaultWorkingDirectory)/work/$(appExecutable)' --migrate --thenExit
             env:
               CONN_STRING: $(connectionString)
+              WEBSITE_SITE_NAME: not-an-empty-string
             displayName: Run database migrations
         deploy:
           steps:

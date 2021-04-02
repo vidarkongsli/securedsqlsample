@@ -141,9 +141,9 @@ stages:
     environment: production
     variables:
     - name: connectionString
-      value: $[ stageDependencies.Provision.Provision.outputs['production.provVar.databaseConnectionString'] ]
+      value: $[ stageDependencies.Provision.Provision.outputs['deploy.provVar.databaseConnectionString'] ]
     - name: webAppName
-      value: $[ stageDependencies.Provision.Provision.outputs['production.provVar.webAppName'] ]
+      value: $[ stageDependencies.Provision.Provision.outputs['deploy.provVar.webAppName'] ]
     strategy:
       runOnce:
         preDeploy:

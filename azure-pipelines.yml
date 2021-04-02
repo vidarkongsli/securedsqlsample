@@ -45,23 +45,23 @@ stages:
       vmImage: windows-latest
     strategy:
       runOnce:
-        # preDeploy:
-        #   steps:
-        #   - script: |
-        #       echo "##vso[task.logissue type=error]Variable 'resourceGroupName' needs to be set in the pipeline config."
-        #       exit 1
-        #     condition: and(succeeded(),eq(variables['resourceGroupName'],''))
-        #     displayName: Variable 'resourceGroupName' is not set
-        #   - script: |
-        #       echo "##vso[task.logissue type=error]Variable 'aadAdminLogin' needs to be set in the pipeline config."
-        #       exit 1
-        #     condition: and(succeeded(),eq(variables['aadAdminLogin'],''))
-        #     displayName: Variable 'aadAdminLogin' is not set
-        #   - script: |
-        #       echo "##vso[task.logissue type=error]Variable 'aadAdminOid' needs to be set in the pipeline config."
-        #       exit 1
-        #     condition: and(succeeded(),eq(variables['aadAdminOid'],''))
-        #     displayName: Variable 'aadAdminOid' is not set
+        preDeploy:
+          steps:
+          - script: |
+              echo "##vso[task.logissue type=error]Variable 'resourceGroupName' needs to be set in the pipeline config."
+              exit 1
+            condition: and(succeeded(),eq(variables['resourceGroupName'],''))
+            displayName: Variable 'resourceGroupName' is not set
+          - script: |
+              echo "##vso[task.logissue type=error]Variable 'aadAdminLogin' needs to be set in the pipeline config."
+              exit 1
+            condition: and(succeeded(),eq(variables['aadAdminLogin'],''))
+            displayName: Variable 'aadAdminLogin' is not set
+          - script: |
+              echo "##vso[task.logissue type=error]Variable 'aadAdminOid' needs to be set in the pipeline config."
+              exit 1
+            condition: and(succeeded(),eq(variables['aadAdminOid'],''))
+            displayName: Variable 'aadAdminOid' is not set
         deploy:
           steps:
           - checkout: self
@@ -141,9 +141,9 @@ stages:
     environment: production
     variables:
     - name: connectionString
-      value: $[ stageDependencies.Provision.Provision.outputs['Provision.provVar.databaseConnectionString'] ]
+      value: $[ stageDependencies.Provision.Provision.outputs['Deploy_production.provVar.databaseConnectionString'] ]
     - name: webAppName
-      value: $[ stageDependencies.Provision.Provision.outputs['Provision.provVar.webAppName'] ]
+      value: $[ stageDependencies.Provision.Provision.outputs['Deploy_production.provVar.webAppName'] ]
     strategy:
       runOnce:
         preDeploy:

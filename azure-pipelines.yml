@@ -13,6 +13,8 @@ variables:
   value: SqlServers
 - name: buildProjects
   value: 'src/SecuredSqlSample.Web/SecuredSqlSample.Web.csproj'
+- name: appExecutable
+  value: SecureMigrationsSample.Web.dll
 
 stages:
 - stage: Build
@@ -159,7 +161,7 @@ stages:
               inlineScript: |
                   Write-Host "Connection string is $env:CONN_STRING"
                   ${env:ConnectionStrings:DefaultConnection}="$env:CONN_STRING"
-                  dotnet '$(System.DefaultWorkingDirectory)/work/SecureMigrationsSample.Web.dll' --migrate --thenExit
+                  dotnet '$(System.DefaultWorkingDirectory)/work/$(appExecutable)' --migrate --thenExit
             env:
               CONN_STRING: $(connectionString)
             displayName: Run database migrations

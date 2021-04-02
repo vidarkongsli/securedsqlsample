@@ -157,8 +157,8 @@ stages:
               scriptType: pscore
               scriptLocation: inlineScript
               inlineScript: |
-                  Write-Host "Connection string is $(connectionString)"
-                  ${env:ConnectionStrings:DefaultConnection}="$(connectionString)"
+                  Write-Host "Connection string is $env:CONN_STRING"
+                  ${env:ConnectionStrings:DefaultConnection}="$env:CONN_STRING"
                   dotnet '$(System.DefaultWorkingDirectory)/work/SecureMigrationsSample.Web.dll' --migrate --thenExit
             env:
               CONN_STRING: $(connectionString)

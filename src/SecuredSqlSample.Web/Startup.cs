@@ -40,6 +40,9 @@ namespace SecuredSqlSample.Web
                 services.AddDbContext<ProfileDbContext>(options =>
                     options.UseSqlite(@"Data Source=C:\tmp\profiles.db"));
             }
+            services
+                .AddHealthChecks()
+                .AddDbContextCheck<ProfileDbContext>();
         }
 
         private static bool IsRunningInAzure()
@@ -63,6 +66,7 @@ namespace SecuredSqlSample.Web
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHealthChecks("/health");
                 endpoints.MapControllers();
             });
         }

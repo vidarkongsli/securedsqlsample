@@ -1,0 +1,29 @@
+GET https://localhost:5001/health
+
+###
+
+GET https://localhost:5001/api/profile
+
+###
+
+POST https://localhost:5001/api/profile
+Content-Type: application/json
+
+{
+    "FirstName":"Hermione",
+    "LastName":"Granger",
+    "EmailAddress":"hermione.granger@hogwarts.edu.uk"
+}
+
+###
+
+GET https://localhost:5001/api/profile/2
+
+###
+
+PATCH https://localhost:5001/api/dbvalues/1
+Content-Type: application/json
+
+{
+    "Value":"Spider"
+}

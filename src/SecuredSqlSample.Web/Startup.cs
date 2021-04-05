@@ -30,13 +30,19 @@ namespace SecuredSqlSample.Web
             if (IsRunningInAzure())
             {
                 services.AddDbContext<ProfileDbContext>(options =>
-                    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+                {
+                    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
+                    options.AddInterceptors(new AzureAdAuthenticationDbConnectionInterceptor());
+                });
             }
             else
             {
                 services.AddDbContext<ProfileDbContext>(options =>
                     options.UseSqlite(@"Data Source=C:\tmp\profiles.db"));
             }
+            services
+                .AddHealthChecks()
+                .AddDbContextCheck<ProfileDbContext>();
         }
 
         private static bool IsRunningInAzure()
@@ -60,6 +66,7 @@ namespace SecuredSqlSample.Web
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHealthChecks("/health");
                 endpoints.MapControllers();
             });
         }

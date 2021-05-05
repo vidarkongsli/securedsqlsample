@@ -1,6 +1,6 @@
 # securedsqlsample
 
-Code for blog post Securing your ASP.NET database access with Azure SQL and Azure pipelines
+Code for blog post [Securing your ASP.NET database access with Azure SQL and Azure pipelines](https://blog.bredvid.no/securing-your-asp-net-database-access-with-azure-sql-and-azure-pipelines-878a69516764)
 
 ## Run locally
 
